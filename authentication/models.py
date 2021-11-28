@@ -15,7 +15,9 @@ from user.models import AllUsers
 TOKEN_TYPE = (
     ('ACCOUNT_VERIFICATION', 'ACCOUNT_VERIFICATION'),
     ('PASSWORD_RESET', 'PASSWORD_RESET'),
+   	('AUTH_TOKEN', 'AUTH_TOKEN'),
 )
+
 
 class Token(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -23,6 +25,8 @@ class Token(models.Model):
     token = models.CharField(max_length=255, null=True)
     token_type = models.CharField(
         max_length=100, choices=TOKEN_TYPE, default='ACCOUNT_VERIFICATION')
+    access = models.CharField(max_length=255, null=True, blank=True)
+    refresh = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

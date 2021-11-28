@@ -27,9 +27,9 @@ base_url = 'api/v1/'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-	path(base_url+'user/', include('user.urls'))
+	path(base_url+'user/', include('user.urls')),
 	# path(base_url, include('user.urls'))
-	# path(base_url, include('authentication.urls'))
+	path(base_url+'auth/', include('authentication.urls'))
 	# path(base_url, include('client.urls'))
 	# path(base_url, include('business.urls'))
 

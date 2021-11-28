@@ -94,7 +94,7 @@ class UserViewset(ModelViewSet):
 	@action(methods=['POST'], url_path='new-password', detail=False, serializer_class=NewPasswordSerializer)
 	def new_password(self, request):
 		try:
-			if request.data['password'] != request.data['confirm_password']:
+			if request.data.get('password',None) != request.data.get('confirm_password', None):
 				return Response({
 					'error': 'Passwords do not match'
 				})
