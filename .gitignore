@@ -16,3 +16,4 @@ celerybeat.pid
 app/logs/debug.log
 app/logs/celery.log
 .env
+db.sqlite3
