@@ -43,16 +43,14 @@ class UserViewset(ModelViewSet):
 	@action(methods=['POST'], url_path='register', detail=False, serializer_class=UserRegistrationSerializer)
 	def register(self, request, *args, **kwargs):
 		try:
-			registration_info = request.data
-			print(registration_info)
-			reg_serializer = self.serializer_class(data=registration_info)
-			reg_serializer.is_valid(raise_exception=True)
-			reg_serializer.save()
+			serializer = self.serializer_class(data=request.data)
+			serializer.is_valid(raise_exception=True)
+			serializer.save()
 
 			# >>> Send Verification Email
 
 			return send_verification_token(
-				self.get_queryset().filter(email=registration_info['email']).first()
+				self.get_queryset().filter(email=request.data['email']).first()
 			)
 		except Exception as e:
 			capture_exception(e)
