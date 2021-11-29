@@ -39,8 +39,9 @@ class UserViewset(ModelViewSet):
 			return Token.objects.all()
 		elif self.action in ['create', 'forgot_password']:
 			return AllUsers.objects.all()
-	
-	def create(self, request, *args, **kwargs):
+
+	@action(methods=['POST'], url_path='register', detail=False, serializer_class=UserRegistrationSerializer)
+	def register(self, request, *args, **kwargs):
 		try:
 			registration_info = request.data
 			print(registration_info)
@@ -57,7 +58,7 @@ class UserViewset(ModelViewSet):
 			capture_exception(e)
 			return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-	@action(methods=['POST'], url_path='verify-token', detail=False, serializer_class=VerifyTokenSerializer)
+	@action(methods=['POST'], url_path='verify-account', detail=False, serializer_class=VerifyTokenSerializer)
 	def verify_account(self, request):
 		try:
 			serializer = self.serializer_class(data=request.data)
