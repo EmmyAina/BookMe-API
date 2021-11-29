@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.models import Token
 from sentry_sdk import capture_exception
@@ -12,10 +13,11 @@ from user.models import AllUsers
 # Create your views here.
 class AuthViewSet(ModelViewSet):
 	serializer_class = LoginSerializer
+	permission_classes = (AllowAny)
 	queryset = AllUsers.objects.all()
 
 	def get_queryset(self):
-		if self.action in ['login', 'new_password']:
+		if self.action in ['login',]:
 			return AllUsers.objects.all()
 		elif self.action in ['create', 'forgot_password']:
 			return AllUsers.objects.all()

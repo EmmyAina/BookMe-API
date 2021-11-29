@@ -23,13 +23,13 @@ from django.utils.crypto import get_random_string
 class UserViewset(ModelViewSet):
 	serializer_class = UserRegistrationSerializer
 	queryset = AllUsers.objects.all()
-	permission_classes = [AllowAny]
+	permission_classes = [AllowAny,]
 	filter_backends = [OrderingFilter, SearchFilter]
 
 	def get_permissions(self):
 		permission_classes = self.permission_classes
 		if self.action in ['create', 'partial_update', 'get_participant']:
-			permission_classes = [IsAuthenticated]
+			permission_classes = [AllowAny]
 		elif self.action == 'list':
 			permission_classes = [IsAuthenticated, IsAdminUser]
 		return [permission() for permission in permission_classes]
@@ -39,14 +39,13 @@ class UserViewset(ModelViewSet):
 			return Token.objects.all()
 		elif self.action in ['create', 'forgot_password']:
 			return AllUsers.objects.all()
-
-		# return super().get_queryset()
+	
 	def create(self, request, *args, **kwargs):
 		try:
 			registration_info = request.data
 			print(registration_info)
 			reg_serializer = self.serializer_class(data=registration_info)
-			reg_serializer.is_valid()
+			reg_serializer.is_valid(raise_exception=True)
 			reg_serializer.save()
 
 			# >>> Send Verification Email
@@ -62,10 +61,10 @@ class UserViewset(ModelViewSet):
 	def verify_account(self, request):
 		try:
 			serializer = self.serializer_class(data=request.data)
-			if serializer.is_valid():
+			if serializer.is_valid(raise_exception=True):
 				token = self.get_queryset().filter(
 					token=request.data.get('token', None)).first()
-				if token and token.is_valid():
+				if token and token.is_valid(raise_exception=True):
 					token.verify_user()
 					token.delete()
 
@@ -85,7 +84,7 @@ class UserViewset(ModelViewSet):
 			if not user:
 				return Response({'error': "Invalid Email Address"})
 			serializer = self.serializer_class(data=request.data)
-			if serializer.is_valid():
+			if serializer.is_valid(raise_exception=True):
 				return send_password_reset_token(self.get_queryset().filter(email=request.data['email']).first())
 		except Exception as e:
 			capture_exception(e)
@@ -99,9 +98,9 @@ class UserViewset(ModelViewSet):
 					'error': 'Passwords do not match'
 				})
 			serializer = self.serializer_class(data=request.data)
-			if serializer.is_valid():
+			if serializer.is_valid(raise_exception=True):
 				token = self.get_queryset().filter(token=request.data.get('token', None)).first()
-				if token and token.is_valid():
+				if token and token.is_valid(raise_exception=True):
 					token.reset_user_password(password=request.data['password'])
 					print(token)
 					token.delete()
