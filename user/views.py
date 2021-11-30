@@ -35,9 +35,9 @@ class UserViewset(ModelViewSet):
 		return [permission() for permission in permission_classes]
 
 	def get_queryset(self):
-		if self.action in ['verify_token', 'new_password']:
+		if self.action in ['verify_account', 'new_password']:
 			return Token.objects.all()
-		elif self.action in ['create', 'forgot_password']:
+		elif self.action in ['register', 'forgot_password']:
 			return AllUsers.objects.all()
 
 	@action(methods=['POST'], url_path='register', detail=False, serializer_class=UserRegistrationSerializer)
@@ -45,9 +45,8 @@ class UserViewset(ModelViewSet):
 		try:
 			serializer = self.serializer_class(data=request.data)
 			serializer.is_valid(raise_exception=True)
-			serializer.save()
-
 			# >>> Send Verification Email
+			serializer.save()
 
 			return send_verification_token(
 				self.get_queryset().filter(email=request.data['email']).first()
@@ -63,7 +62,7 @@ class UserViewset(ModelViewSet):
 			if serializer.is_valid(raise_exception=True):
 				token = self.get_queryset().filter(
 					token=request.data.get('token', None)).first()
-				if token and token.is_valid(raise_exception=True):
+				if token and token.is_valid():
 					token.verify_user()
 					token.delete()
 

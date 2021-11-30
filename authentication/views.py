@@ -13,7 +13,7 @@ from user.models import AllUsers
 # Create your views here.
 class AuthViewSet(ModelViewSet):
 	serializer_class = LoginSerializer
-	permission_classes = (AllowAny)
+	permission_classes = (AllowAny,)
 	queryset = AllUsers.objects.all()
 
 	def get_queryset(self):
