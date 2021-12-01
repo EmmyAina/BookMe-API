@@ -35,36 +35,34 @@ class UserViewset(ModelViewSet):
 		return [permission() for permission in permission_classes]
 
 	def get_queryset(self):
-		if self.action in ['verify_token', 'new_password']:
+		if self.action in ['verify_account', 'new_password']:
 			return Token.objects.all()
-		elif self.action in ['create', 'forgot_password']:
+		elif self.action in ['register', 'forgot_password']:
 			return AllUsers.objects.all()
-	
-	def create(self, request, *args, **kwargs):
-		try:
-			registration_info = request.data
-			print(registration_info)
-			reg_serializer = self.serializer_class(data=registration_info)
-			reg_serializer.is_valid(raise_exception=True)
-			reg_serializer.save()
 
+	@action(methods=['POST'], url_path='register', detail=False, serializer_class=UserRegistrationSerializer)
+	def register(self, request, *args, **kwargs):
+		try:
+			serializer = self.serializer_class(data=request.data)
+			serializer.is_valid(raise_exception=True)
 			# >>> Send Verification Email
+			serializer.save()
 
 			return send_verification_token(
-				self.get_queryset().filter(email=registration_info['email']).first()
+				self.get_queryset().filter(email=request.data['email']).first()
 			)
 		except Exception as e:
 			capture_exception(e)
 			return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-	@action(methods=['POST'], url_path='verify-token', detail=False, serializer_class=VerifyTokenSerializer)
+	@action(methods=['POST'], url_path='verify-account', detail=False, serializer_class=VerifyTokenSerializer)
 	def verify_account(self, request):
 		try:
 			serializer = self.serializer_class(data=request.data)
 			if serializer.is_valid(raise_exception=True):
 				token = self.get_queryset().filter(
 					token=request.data.get('token', None)).first()
-				if token and token.is_valid(raise_exception=True):
+				if token and token.is_valid():
 					token.verify_user()
 					token.delete()
 

@@ -13,7 +13,7 @@ GENDER = (
 )
 
 AUTH_PROVIDERS = {'facebook': 'facebook', 'google': 'google',
-                  'twitter': 'twitter', 'email': 'email'}
+				  'twitter': 'twitter', 'email': 'email'}
 
 
 class AllUsers(AbstractBaseUser, PermissionsMixin):
@@ -39,3 +39,7 @@ class AllUsers(AbstractBaseUser, PermissionsMixin):
 
 	def __str__(self):
 		return self.email
+
+	def business_account(self):
+		self.has_business_account = True
+		self.save(update_fields=['has_business_account'])
