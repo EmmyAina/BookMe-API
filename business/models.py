@@ -16,7 +16,24 @@ class BusinessOwner(models.Model):
 	opening_time = models.TimeField()
 	closing_time = models.TimeField()
 	secondary_email = models.CharField(max_length=255, blank=False)
+	booking_count = models.IntegerField(default=0)
 	date_joined = models.DateTimeField(auto_now_add=True, null=True)
 
 	def __str__(self):
 		return f'{self.business_name} {self.business_owner.email}'
+
+class Bookings(models.Model):
+	client = models.ForeignKey(
+		    'user.AllUsers', related_name='client', on_delete=models.CASCADE)
+	business = models.ForeignKey(BusinessOwner,on_delete=models.CASCADE,related_name='service_provider',null=True,blank=True)
+	time = models.DateTimeField()
+	approved = models.BooleanField(default=False)
+
+	def __str__(self):
+		return f'{self.business.business_name} was booked by {self.client.email} for {self.time}'
+
+	def add_booking(self):
+		self.approved = True
+		self.save(update_fields=['approved'])
+		self.business.booking_count+=1
+		self.business.save(update_fields=['booking_count'])
