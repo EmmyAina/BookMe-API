@@ -43,3 +43,8 @@ class AllUsers(AbstractBaseUser, PermissionsMixin):
 	def business_account(self):
 		self.has_business_account = True
 		self.save(update_fields=['has_business_account'])
+
+	def change_password(self, password):
+		self.set_password(password)
+		self.save(update_fields=['password'])
+

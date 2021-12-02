@@ -1,18 +1,14 @@
-from django.db.models import query
-from django.shortcuts import render
 from rest_framework import status
-from rest_framework.utils import serializer_helpers
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
-
+from helpers import send_password_reset_token, send_verification_token
 from authentication.models import TOKEN_TYPE, Token
-from authentication.serializers import ForgotPasswordSerializer, NewPasswordSerializer, VerifyTokenSerializer
+from authentication.serializers import ChangePasswordSerializer, ForgotPasswordSerializer, NewPasswordSerializer, VerifyTokenSerializer
 from .models import AllUsers
 from .serializers import UserRegistrationSerializer
 from sentry_sdk import capture_exception
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter, SearchFilter
-# from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from authentication.models import Token
 from django.utils.crypto import get_random_string
@@ -30,14 +26,14 @@ class UserViewset(ModelViewSet):
 		permission_classes = self.permission_classes
 		if self.action in ['create', 'partial_update', 'get_participant']:
 			permission_classes = [AllowAny]
-		elif self.action == 'list':
-			permission_classes = [IsAuthenticated, IsAdminUser]
+		elif self.action in ['list', 'change_password']:
+			permission_classes = [IsAuthenticated]
 		return [permission() for permission in permission_classes]
 
 	def get_queryset(self):
 		if self.action in ['verify_account', 'new_password']:
 			return Token.objects.all()
-		elif self.action in ['register', 'forgot_password']:
+		elif self.action in ['register', 'forgot_password', 'change_password']:
 			return AllUsers.objects.all()
 
 	@action(methods=['POST'], url_path='register', detail=False, serializer_class=UserRegistrationSerializer)
@@ -45,9 +41,7 @@ class UserViewset(ModelViewSet):
 		try:
 			serializer = self.serializer_class(data=request.data)
 			serializer.is_valid(raise_exception=True)
-			# >>> Send Verification Email
 			serializer.save()
-
 			return send_verification_token(
 				self.get_queryset().filter(email=request.data['email']).first()
 			)
@@ -113,33 +107,24 @@ class UserViewset(ModelViewSet):
 			capture_exception(e)
 			return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-def send_verification_token(user):
-	try:
-		token, _ = Token.objects.update_or_create(
-			user=user, token_type='ACCOUNT_VERIFICATION',
-			defaults={'user': user, 'token_type': 'ACCOUNT_VERIFICATION', 'token': get_random_string(120)})
-		print(token)
-
-		return Response({
-			'message': 'Verification Mail Sent Successfully'
-		}, status=status.HTTP_200_OK)
-	except Exception as e:
-		capture_exception(e)
-		return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-def send_password_reset_token(user):
-	try:
-		token, _ = Token.objects.update_or_create(
-			user=user, token_type='PASSWORD_RESET',
-			defaults={'user': user, 'token_type': 'PASSWORD_RESET', 'token': get_random_string(120)})
-		print(token)
-
-		return Response({
-			'message': 'Password Reset Sent Successfully'
-		}, status=status.HTTP_200_OK)
-	except Exception as e:
-		capture_exception(e)
-		return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+	@action(methods=['POST'], url_path='change-password', detail=False, serializer_class=ChangePasswordSerializer)
+	def change_password(self, request):
+		try:
+			serializer = self.serializer_class(data=request.data)
+			user = self.get_queryset().filter(email=request.user).first()
+			if serializer.is_valid(raise_exception=True):
+				if request.data.get('new_password', None) != request.data.get('confirm_password', None):
+					return Response({
+						'error': 'Passwords do not match'
+					})
+				elif not user.check_password(request.data.get('old_password', None)):
+					return Response({
+						'error': 'Old password not correct'
+					})
+				user.change_password(password=request.data['new_password'])
+				return Response({
+                                    'message': 'Password Changed Successfully'
+                                })
+		except Exception as e:
+			capture_exception(e)
+			return Response({'error': str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR)
